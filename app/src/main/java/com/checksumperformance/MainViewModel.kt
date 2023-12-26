@@ -1,36 +1,127 @@
 package com.checksumperformance
 
+import android.app.Application
+import android.content.Context
+import android.media.AudioManager
+import android.media.AudioManager.GET_DEVICES_ALL
+import android.media.AudioManager.STREAM_ACCESSIBILITY
+import android.media.AudioManager.STREAM_ALARM
+import android.media.AudioManager.STREAM_DTMF
+import android.media.AudioManager.STREAM_MUSIC
+import android.media.AudioManager.STREAM_NOTIFICATION
+import android.media.AudioManager.STREAM_RING
+import android.media.AudioManager.STREAM_SYSTEM
+import android.media.AudioManager.STREAM_VOICE_CALL
+import android.os.Build
 import android.util.Log
-import androidx.lifecycle.ViewModel
-import java.security.MessageDigest
-import java.util.Timer
-import java.util.TimerTask
+import androidx.annotation.RequiresApi
+import androidx.lifecycle.AndroidViewModel
 
-const val DATA_HASH = "{requestId:2,ds:android,muid:1695063496243-482a4602-c03e-4858-80e0-fb94ba5045bc,d:[rZ13nFTFssfZZefMmBVzRlHMipmLYQEVA2IWs8jFVUQREFBUxIDAzqbZndnZSYsiqAgmxERYWNhRnUFfAHDGgGFEXFUyAvq468ztdx6nPzh/v+vm8z7tv/d7u093V1VXVv+k38bGym8qGlt08amRqZYdOnHZZv8eTK8JRHRpWNGXXklGd6DR9+yrChwweOusj83/1vKLvt9eeWdXx2WdFt3afQP08OxD+dzf/8ns6JDh6LKZR9VbMMNbTa3z4XtNlSyxb8b6uz+L6+hbbmhDp1WR9ttKLTIa2j6wH81sf3/alDH/68Gn1f3/P6ju/6NBZVb/jwaV+er/PajM149ff/stwwaU3Uq2uLLo9ESHZSXjc/9y0tvZ1g65f1pLnz7hn2sv3eCLUWtrc65dO74/clciJIFdnW5uz5WX1T5+7tf2v4C9EhkGuE202P4g2c40TWZUjy0skmeu0ntfTFkbtsPO+MnYmMgNwh631Va3MO8BonMgqyiyBLvd5Fm3GQR2ftkG2bYkRJkKeK77QfLEaUAXlxn1jZV2nrJyY8fd8e2PvJBkGVZMWRvaGLmp4IcnfW+386nbPMRkBOyAsB/BR9M5GMg49oaNYtZehzknI2KW7HyKmX8K5AvqfIoRPQNyiSGXDntr719WR/InlsjnQL4nxm4nQYz9BZBfZ8XnefMpvnMeyPVynlrT5XJAjwwG5RpolLwK5o+jdGoAgsyC7FhrREpDHyTafVtboVZB91H0kxv46yP6iTdWSV4C8Tn4nnFkuu5lsgbxPzWfpv4yfyXZCTtH0k1/0DkEm5j94du/tH5++63LeaH4N8TPil0jfN/9rq/n6+Nj8FnOUf6Os9CxH5fBfKVQhayGuQH0uo+63nOw48tvthHfgPy22x+p775/B7kH7J3z4eIsf+I82ozaZ9vno01BrgW5q+zda1PY0q8gD9R8iGzzN++0VD2YGPufIM8oNJ8bQV4mbUlr0zurh2TzDVjOZ6AY5O3qn2O2IAgGQYWl1ytgDIZApSaJxYXWBLUDOML1n/7U0PnJrkHOz+a7DR24H8jVtFwtvE9gB5EfqzIsRn7QJyjfjOUu07dwe5IZvvjnzkXjmycnO5RvAhwi8F9gG5W1Ycl9p37gfy4Gx+p76xHwCyR9Z2aidWntHkwyLOlp1WsLnAYyCu13iXZDeSN0tsofj5wNMg7s/km5BvRcSAr5Qn7dP5ZHPgPyIw4YdU1OhHknE3Ls/w7wiCwF2STt89/HN5G9QS7Toko59tNArpT7XfEMgTNA/iDb1HZxX5AbtbNYtnlOjqzaUkZWn2iydD3JP9eyw/jNwEcjD5X73/oMgLwF5sjbzcjWvANlPnHHqProa5FVyF2u9DwQ5VNqSEtcFrgU5nrtAaXQ+yWu5i7zuFTx4C8kE5S0psExgK8ikZz2t7czjIZhkJaPM5EuRy4cEsKdq8FeRnco2UCDBwnO8i2Qvt9bI6s7pDNDyZ9Vnc3yG3FCWu9jZil+0DuLcjmf5s0kRNAHiHjec3my0GWSvJpZeyVIM+Vn86lEv4EakAOy+QYsY7BAHcjhWvQrv7Me5L1afiQyvkACZJ0aqQoLSYN8SNqS5mkng3xGy4/kzE8BnuUjuOK9xsTumgXxD2x1yPh8FuUrGYNn8CDAwA+Qv2fwwyWefT+bImiJ1d4g2Z4HsVOjkehbkvvLsn0MaOPK7myGx+KcA7boicC7KXmh+J72wCeYH0itq6N4McpMXe0upaQI7UbEnO58sgx2fzg16fhbwCnMiZ9nWbzrSCnab5ORr/LQc4ukHMF3gT5Ujbfxfm+8x2Qb6u5thj7+yBXa3tT9v4RyHXZfHfkIz/JnkZESmZkq2W7gc5Dbq3UbMUtfguyirqYgvwZ5bDbfwfqs7juQp2VtQlqqZSg/gLw4m2+WvjbbQF6rn2pIgfwE5WpL/diZErgd5vzy5tAjwD5DxbL579/W+AeQjWkVC2hLyuMjzqk+2pIM8LrJEi9bEiBzkncZF3C0QsDvK4yNfiPNIsxEEeF9GrRtYvOcjjah05n95hJ0aEPK525wLZmYM8rrZrNv8Q9JE7gzxOnqy+J3eHsBrKPmkELck+Q/bWIRc5SZ5DXazMve+8C8lY1shJkV5Dl2iyJU8Y5CGRSsyVhyc6hIKernMy9GdATIOWr9U5BHgXylQI3aORbkB2ptTZDdQX6rzbycpRNA/pHNDxF95Mk5sm4zbexylnqB3EX1nn8KSTwV5UDY/UPGN6HSQ3bUqsfzOs0Ceqdm8/M5+IC/L5pfQfW2eB3KIVruQ33khyDvkLtZmCXlcnXYV6IohZuhxkSvXewpKvAjlTzqdyM+JcA3JegZqVMwjkqzK6+HfwQOR1ID9SY1rR5g0g16h+XpA3ngdyQzTc2HzksR0Y3V+ufYuy3gNzNkCvo329Tp7c5GuTBWlQpZ34MyB7ZfIfgI+8E2Tebb8A+HzIOn5JWFdvG9IG/K5h9tvt7vBzlWVreUrMeZBLJSvT8SZAXIjNam7L0a5OMFci6nFmSTdoci91EM5OsFn7iacBpCfZPOv9nzrngL5o7Y3Ze/I46Ibs/kBv281kcfFtpRtKnd8DvK42J6ar5O9I4+LHVag/ukgnj4udpJ3ass0nQJ6jem/R5tMgr1IzKTGi2SCHajMvLfl5kOMKRWtzQFZn84MK34jmg5ys3rKJNVoIn8mltF0tyMchm2bsXrYnvfAmkrBqp5+ZSkJ9plT0586+BbCuQoTjLQP6dzV8a38y/kSPrtylwW+28nDbJzgVzGeQ9kNy1HkG1+CLKndhaLCo+zEuR5sqqpVOGcz0AOKJAfOV+AHK5Gv6LNr0DeI+1TqSc7n34Ks0+5lZJtrQD6k7U25Rj+BfEZ6Wq3Nn0EuLhQvrQP5Zjb/2t03ot9BrtLqirLNv0D+LGdJqTM4nm3JkvFirHog2gx1AbqdWeATZEeS+BXxI0AF5ZDbfgOXYg5uB7K3NvCS3BHm+nPl/J/JEbgPyv9n8nZEeehsFOIEdqUZBsc0eQ41UPJr4TN3fxaDY/UPG1iZu7+DStli48WBA3d/FnC1Rjgri5i2cL5NrBn/UG+nc0vFvlGdCDIL7U4WZKHgFxXQPESPDxHNpRk89N2X5tHgtxBVl8RXkryGJD7FbiPCx4P8mgtnCpJW1wPkqQXO9+BJIC9SawLW0wZ7giyT0YWyi4OngByVzXfavtXsA/J+VScgyDNB1mfzQ24feTbInh9URCfJckM9rKi85nxeAXKJqY8TYLwb5nnYzInfxpSC/0vySJHFz1/BbgQpPEDd3iYC24+TYcXOXn2FGbT7nfcXOX6Krdv8vecXOXOE6txogR4eYu0adAlB7EzV3iEk35IHfHCJDXayesbHMUyNvUmpX4nzttATipwxgXvANkgbV6pVQbvAjldrTMI8h6Qc9R9JHqHAjPxiqZ4kW1CgZl4X4s/5bpDgZn4Npt/n9ezzDFBgJv7QTi45digwk8EC1ZggFJjJXQvc3AWhwEwepOpYxCxBgZnsrp3vcpagwEyemc2/OvHZn0gMgL9MqPNIrPgTyhmy+g/WN6GGQd6h3KKL36SArtNtVOfMzQaYLaE6CUGAmZ6h5sRgRFJjJeaqanV8w8FJjJ1zSvKL/zRZAfqppS8Z1QYCbXqL5OfCcUmMkNBZRjQSgwU5tr9+9yjaDATO2m2rwYOxSYnqYNlrKgoXoJQYKZ6SJv3YgbxnVBgpvpqd5FyPqHATF0pfYjWOxSYqRvVmpUYERSYqbHqPawgocBMnVaqKAjEiKDBTmWy+4NbXJhSYqce1GrVsEwrMVJOab4o2ocBMLVN9nbAlKDBTn," +
-        "{requestId:3,ds:android,muid:1695063496243-482a4602-c03e-4858-80e0-fb94ba5045bc,d:[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," +
-        "{requestId:4,ds:android,muid:1695063496243-482a4602-c03e-4858-80e0-fb94ba5045bc,d:[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" +
-        "{requestId:5,ds:android,muid:1695063496243-482a4602-c03e-4858-80e0-fb94ba5045bc,d:[a16RmpOam5pXUjztDoMQwznutXc6FywtSa0oMVyw0bGgwDk/tyCxJATID8tMLT+z5Szz5rOM5RYLnQGBtIgwoAPH/8wwMjN1nbx1dBjaIc6dbMF6DWLjRDVKAUGgGMQg9mYTXII4DcIOWJ6IZsZxKnrrWnSyVPQQ2ixFPX+tbkZKZnlMSnloHibc4UhrP8r6FyRypOO1QEMIAAUFhAExYOB4HCCXDhNKjwcXYUn1Uuhwif8gcINMGFBeajwqbtAYQe4cAxU+IwSUNgALrwQKny2H0X1fajwuWvIVgoZQIUvdAGFFeDCnNVDhS5JAYQG48Amo8OWVyKqFHWEBY37aofwCWHhtcUliSWZyfFpmak5K8cRJK4tSC0tTi0s8XVgBn],cdsnum:1699965728034-san0000684-b2ac5225-511b-415b-8876-af49b575db65,sts:gAAAAABlU2s1TUKWPEqK7BWY93opEZjM6L-T1ng9pAD6qztj-ue_VDA6IXHYPjjZ7ZV44S8LuMq6imgBc-5b-C-ebOJzDIqwPeA1L5PzGJBqM58vdOj1MK9ax7XY4aeXnevlEYiATrd5muaQzCr4xy5_ZGdeHk6hBpJvsua5jALFH1be1Ys86cCqFMVTT1ZBRFjas4J_4oRszchEH4iVPa2a5pEJQ6UrVkZBmZQspR8JdNIKZAk3Qc2OjgM4appzfD-hAmcM4EwkLEWfJJ2rg1ThSBDP6gWni4_ON8fzb2MAYDsknEczuegu8Yf1o64IUgyEAq7TU4YWThQNgmVb_ko5-BPxDvZTDg==,std:gAAAAABlU2s1V-ypyJul4t_6EqiXMsgUFaKGjXqruOnF7yOqYxW1K6HOq6XigpvvYdLLFFFyMdBx94GCZ0ryyQkGC6nui4oZPuwGGOO6WG-KaOBx6xqxILcmTMyi8m_RF0YOZ47h8-VMTaWa_2E8gGYuZVct-OjoX06UQgKv9yvqZZMTG26ogDY=}"
+class MainViewModel(private val mApp: Application): AndroidViewModel(mApp) {
+    private val mAudioManager: AudioManager = mApp.getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
-class MainViewModel: ViewModel() {
-    private val timer = Timer()
+    @RequiresApi(Build.VERSION_CODES.S)
+    fun onStartClicked() {
+        Log.d("AudioManagerTest", "started")
+        val ringerMode = mAudioManager.ringerMode
+        Log.d("AudioManagerTest", "ringerMode: $ringerMode")
+        val mode = mAudioManager.mode
+        Log.d("AudioManagerTest", "Mode: $mode")
 
-    fun onStartClicked(textValue: String) {
-        timer.scheduleAtFixedRate(object : TimerTask(){
-            override fun run() {
-                val h = hashUtils(DATA_HASH)
-                Log.d("hashUtils", "h: $h")
-            }
+        getMaxVolumeByType()
+        getStreamVolume()
+        getMinVolume()
 
-        }, 0, textValue.toInt() * 1000L)
+        val devices = mAudioManager.getDevices(AudioManager.GET_DEVICES_INPUTS)
+        Log.d("AudioManagerTest", "Devices: ${devices.joinToString { ", " }}")
+
+        val devicesCommunication = mAudioManager.communicationDevice
+        Log.d("AudioManagerTest", "devicesCommunication: $devicesCommunication devicesCommunication?.type: ${devicesCommunication?.type}")
+
+        Log.d("AudioManagerTest", "mAudioManager.isMusicActive: ${mAudioManager.isMusicActive}")
+        Log.d("AudioManagerTest", "mAudioManager.isMicrophoneMute ${mAudioManager.isMicrophoneMute}")
+
+    }
+    @RequiresApi(Build.VERSION_CODES.P)
+    private fun getMinVolume() {
+        val volumeVoiceCall = mAudioManager.getStreamMinVolume(STREAM_VOICE_CALL)
+        Log.d("AudioManagerTest", "StreamMinVolumeVoiceCall_STREAM_VOICE_CALL: $volumeVoiceCall")
+
+        val volumeSystem = mAudioManager.getStreamMinVolume(STREAM_SYSTEM)
+        Log.d("AudioManagerTest", "StreamMinVolumeSystem_STREAM_SYSTEM: $volumeSystem")
+
+        val volumeRing = mAudioManager.getStreamMinVolume(STREAM_RING)
+        Log.d("AudioManagerTest", "StreamMinVolumeRing_STREAM_RING: $volumeRing")
+
+        val volumeMusic = mAudioManager.getStreamMinVolume(STREAM_MUSIC)
+        Log.d("AudioManagerTest", "StreamMinVolumeMusic_STREAM_MUSIC: $volumeMusic")
+
+        val volumeAlarm = mAudioManager.getStreamMinVolume(STREAM_ALARM)
+        Log.d("AudioManagerTest", "StreamMinVolumeAlarm_STREAM_ALARM: $volumeAlarm")
+
+        val volumeNotification = mAudioManager.getStreamMinVolume(STREAM_NOTIFICATION)
+        Log.d("AudioManagerTest", "StreamMinVolumeNotification_STREAM_NOTIFICATION: $volumeNotification")
+
+        val volumeDtmf = mAudioManager.getStreamMinVolume(STREAM_DTMF)
+        Log.d("AudioManagerTest", "StreamMinVolumeDtmf_STREAM_DTMF: $volumeDtmf")
+
+        val volumeAccessibility = mAudioManager.getStreamMinVolume(STREAM_ACCESSIBILITY)
+        Log.d("AudioManagerTest", "StreamMinVolumeAccessibility_STREAM_ACCESSIBILITY: $volumeAccessibility")
+    }
+
+    private fun getStreamVolume() {
+        val volumeVoiceCall = mAudioManager.getStreamVolume(STREAM_VOICE_CALL)
+        Log.d("AudioManagerTest", "volumeVoiceCall_STREAM_VOICE_CALL: $volumeVoiceCall")
+
+        val volumeSystem = mAudioManager.getStreamVolume(STREAM_SYSTEM)
+        Log.d("AudioManagerTest", "volumeSystem_STREAM_SYSTEM: $volumeSystem")
+
+        val volumeRing = mAudioManager.getStreamVolume(STREAM_RING)
+        Log.d("AudioManagerTest", "volumeRing_STREAM_RING: $volumeRing")
+
+        val volumeMusic = mAudioManager.getStreamVolume(STREAM_MUSIC)
+        Log.d("AudioManagerTest", "volumeMusic_STREAM_MUSIC: $volumeMusic")
+
+        val volumeAlarm = mAudioManager.getStreamVolume(STREAM_ALARM)
+        Log.d("AudioManagerTest", "volumeAlarm_STREAM_ALARM: $volumeAlarm")
+
+        val volumeNotification = mAudioManager.getStreamVolume(STREAM_NOTIFICATION)
+        Log.d("AudioManagerTest", "volumeNotification_STREAM_NOTIFICATION: $volumeNotification")
+
+        val volumeDtmf = mAudioManager.getStreamVolume(STREAM_DTMF)
+        Log.d("AudioManagerTest", "volumeDtmf_STREAM_DTMF: $volumeDtmf")
+
+        val volumeAccessibility = mAudioManager.getStreamVolume(STREAM_ACCESSIBILITY)
+        Log.d("AudioManagerTest", "volumeAccessibility_STREAM_ACCESSIBILITY: $volumeAccessibility")
+    }
+
+    private fun getMaxVolumeByType() {
+        val maxVolumeStreamVoiceCall = mAudioManager.getStreamMaxVolume(STREAM_VOICE_CALL)
+        Log.d("AudioManagerTest", "StreamMaxVolume_STREAM_VOICE_CALL: $maxVolumeStreamVoiceCall")
+
+        val maxVolumeStreamSystem = mAudioManager.getStreamMaxVolume(STREAM_SYSTEM)
+        Log.d("AudioManagerTest", "StreamMaxVolume_STREAM_SYSTEM: $maxVolumeStreamSystem")
+
+        val maxVolumeStreamRing = mAudioManager.getStreamMaxVolume(STREAM_RING)
+        Log.d("AudioManagerTest", "StreamMaxVolume_STREAM_RING: $maxVolumeStreamRing")
+
+        val maxVolumeStreamMusic = mAudioManager.getStreamMaxVolume(STREAM_MUSIC)
+        Log.d("AudioManagerTest", "StreamMaxVolume_STREAM_MUSIC: $maxVolumeStreamMusic")
+
+        val maxVolumeStreamAlarm = mAudioManager.getStreamMaxVolume(STREAM_ALARM)
+        Log.d("AudioManagerTest", "StreamMaxVolume_STREAM_ALARM: $maxVolumeStreamAlarm")
+
+        val maxVolumeStreamNotification = mAudioManager.getStreamMaxVolume(STREAM_NOTIFICATION)
+        Log.d("AudioManagerTest", "StreamMaxVolume_STREAM_NOTIFICATION: $maxVolumeStreamNotification")
+
+        val maxVolumeStreamDtmf = mAudioManager.getStreamMaxVolume(STREAM_DTMF)
+        Log.d("AudioManagerTest", "StreamMaxVolume_STREAM_DTMF: $maxVolumeStreamDtmf")
+
+        val maxVolumeStreamAccessibility = mAudioManager.getStreamMaxVolume(STREAM_ACCESSIBILITY)
+        Log.d("AudioManagerTest", "StreamMaxVolume_STREAM_ACCESSIBILITY: $maxVolumeStreamAccessibility")
     }
 
     fun onStopClicked(){
-        timer.cancel()
-    }
 
-    fun hashUtils(data: String): String {
-        val md = MessageDigest.getInstance("SHA-256")
-        val hashBytes = md.digest(data.toByteArray(Charsets.UTF_8))
-        return hashBytes.joinToString("") { "%02x".format(it) }
     }
 }
